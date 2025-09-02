@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>LM Studio Chat</title>
+    <style>
+        :root {
+            --primary: #818cf8;
+            --primary-dark: #6366f1;
+            --background: #0f172a;
+            --card: #1e293b;
+            --text: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --border: #334155;
+            --user-bubble: #4f46e5;
+            --assistant-bubble: #334155;
+            --system-bubble: #3c1904;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --code-bg: #1e293b;
+            --code-text: #f1f5f9;
+            --recipe-title: #fbbf24;
+            --recipe-step: #10b981;
+        }
+
+        .light-theme {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --background: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+            --text-secondary: #64748b;
+            --border: #cbd5e1;
+            --user-bubble: #4f46e5;
+            --assistant-bubble: #f1f5f9;
+            --system-bubble: #fef3c7;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --code-bg: #f8fafc;
+            --code-text: #1e293b;
+            --recipe-title: #ea580c;
+            --recipe-step: #16a34a;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--background);
+            color: var(--text);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overscroll-behavior: none;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: var(--card);
+            padding: 1rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .theme-toggle {
+            background: var(--border);
+            border: none;
+            border-radius: 50%;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text);
+            transition: all 0.2s ease;
+        }
+
+        .theme-toggle:hover {
+            transform: rotate(15deg);
+        }
+
+        .auth-section {
+            padding: 2rem;
+            background: var(--card);
+            margin: 1rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        .auth-section input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            font-size: 1rem;
+            background: var(--background);
+            color: var(--text);
+            transition: border-color 0.2s;
+        }
+
+        .auth-section input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+        }
+
+        .auth-section button {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .auth-section button:hover {
+            background: var(--primary-dark);
+        }
+
+        .chat-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .message {
+            max-width: 85%;
+            padding: 1rem;
+            border-radius: 18px;
+            line-height: 1.5;
+            word-wrap: break-word;
+            animation: fadeIn 0.2s ease-out;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .user-message {
+            align-self: flex-end;
+            background: var(--user-bubble);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .assistant-message {
+            align-self: flex-start;
+            background: var(--assistant-bubble);
+            color: var(--text);
+            border-bottom-left-radius: 4px;
+        }
+
+        .system-message {
+            align-self: center;
+            background: var(--system-bubble);
+            color: var(--warning);
+            font-size: 0.875rem;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+        }
+
+        .input-area {
+            padding: 1rem;
+            background: var(--card);
+            border-top: 1px solid var(--border);
+        }
+
+        .input-container {
+            display: flex;
+            gap: 0.5rem;
+            align-items: flex-end;
+        }
+
+        .prompt-input {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            font-size: 1rem;
+            resize: none;
+            max-height: 150px;
+            outline: none;
+            background: var(--background);
+            color: var(--text);
+            transition: border-color 0.2s;
+        }
+
+        .prompt-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+        }
+
+        .send-button {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: all 0.2s;
+        }
+
+        .send-button:hover {
+            background: var(--primary-dark);
+            transform: scale(1.05);
+        }
+
+        .send-button:disabled {
+            background: var(--border);
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .action-button {
+            flex: 1;
+            padding: 0.5rem;
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .action-button:hover {
+            background: rgba(129, 140, 248, 0.1);
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .typing-indicator {
+            align-self: flex-start;
+            background: var(--assistant-bubble);
+            padding: 1rem;
+            border-radius: 18px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            border-bottom-left-radius: 4px;
+        }
+
+        .typing-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--text-secondary);
+            border-radius: 50%;
+            animation: typing 1.4s infinite ease-in-out;
+        }
+
+        .typing-dot:nth-child(1) { animation-delay: 0s; }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-5px); }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .chat-messages::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+
+        /* Recipe formatting */
+        .recipe-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--recipe-title);
+            margin: 1rem 0 0.5rem 0;
+            text-align: center;
+        }
+
+        .recipe-section {
+            margin: 0.75rem 0;
+        }
+
+        .recipe-section h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 0.25rem;
+        }
+
+        .recipe-ingredients ul,
+        .recipe-instructions ol {
+            padding-left: 1.5rem;
+            margin: 0.5rem 0;
+        }
+
+        .recipe-ingredients li,
+        .recipe-instructions li {
+            margin-bottom: 0.25rem;
+        }
+
+        .recipe-step {
+            color: var(--recipe-step);
+            font-weight: 500;
+        }
+
+        .recipe-notes {
+            font-style: italic;
+            color: var(--text-secondary);
+            margin: 0.75rem 0;
+            padding: 0.75rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+        }
+
+        .light-theme .recipe-notes {
+            background: rgba(0, 0, 0, 0.03);
+        }
+
+        /* Code blocks */
+        pre {
+            background: var(--code-bg);
+            color: var(--code-text);
+            padding: 1rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 0.75rem 0;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        code {
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            background: var(--code-bg);
+            padding: 0.2rem 0.4rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        /* Lists */
+        ul, ol {
+            margin: 0.75rem 0;
+            padding-left: 1.5rem;
+        }
+
+        li {
+            margin-bottom: 0.25rem;
+        }
+
+        /* Headers in messages */
+        .assistant-message h1,
+        .assistant-message h2,
+        .assistant-message h3,
+        .assistant-message h4 {
+            margin: 1rem 0 0.5rem 0;
+            font-weight: 600;
+        }
+
+        .assistant-message h1 {
+            font-size: 1.5rem;
+            color: var(--primary);
+        }
+
+        .assistant-message h2 {
+            font-size: 1.3rem;
+            color: var(--text);
+        }
+
+        .assistant-message h3 {
+            font-size: 1.1rem;
+            color: var(--text);
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0.75rem 0;
+            font-size: 0.9rem;
+        }
+
+        th, td {
+            padding: 0.5rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background: rgba(129, 140, 248, 0.1);
+            font-weight: 600;
+        }
+
+        tr:hover {
+            background: rgba(129, 140, 248, 0.05);
+        }
+
+        /* Responsive improvements */
+        @media (max-width: 768px) {
+            .message {
+                max-width: 90%;
+                padding: 0.8rem;
+            }
+            
+            .header h1 {
+                font-size: 1.1rem;
+            }
+            
+            .input-container {
+                gap: 0.4rem;
+            }
+            
+            .prompt-input {
+                padding: 0.6rem 0.8rem;
+                font-size: 0.95rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .message {
+                max-width: 92%;
+                padding: 0.75rem;
+            }
+            
+            .header {
+                padding: 0.75rem;
+            }
+            
+            .auth-section {
+                padding: 1.5rem;
+                margin: 0.75rem;
+            }
+            
+            .input-area {
+                padding: 0.75rem;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+        }
+
+        @supports (padding: env(safe-area-inset-top)) {
+            .header {
+                padding-top: calc(1rem + env(safe-area-inset-top));
+            }
+            
+            .input-area {
+                padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+            }
+        }
+
+        /* Selection styling */
+        ::selection {
+            background: var(--primary);
+            color: white;
+        }
+
+        /* Focus visible for accessibility */
+        :focus-visible {
+            outline: 2px solid var(--primary);
+            outline-offset: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>LM Studio Chat</h1>
+            <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                </svg>
+            </button>
+        </div>
+
+        <div id="auth-section" class="auth-section">
+            <input type="password" id="password" placeholder="Enter password" autocomplete="current-password">
+            <button onclick="authenticate()">Login</button>
+        </div>
+
+        <div id="chat-container" class="chat-container hidden">
+            <div id="chat-messages" class="chat-messages"></div>
+            
+            <div class="input-area">
+                <div class="input-container">
+                    <textarea 
+                        id="prompt" 
+                        class="prompt-input" 
+                        placeholder="Type your message..."
+                        rows="1"
+                        aria-label="Message input"
+                    ></textarea>
+                    <button id="send-button" class="send-button" onclick="sendPrompt()" aria-label="Send message">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="m22 2-7 20-4-9-9-4Z"></path>
+                            <path d="M22 2 11 13"></path>
+                        </svg>
+                    </button>
+                </div>
+                
+                <div class="action-buttons">
+                    <button class="action-button" onclick="clearChat()" aria-label="Clear chat">Clear Chat</button>
+                    <button class="action-button" onclick="logout()" aria-label="Logout">Logout</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let authToken = localStorage.getItem('authToken');
+        let isSending = false;
+        let tokenExpiry = null;
+
+        const promptInput = document.getElementById('prompt');
+        promptInput.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 150) + 'px';
+        });
+
+        promptInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                if (!isSending) sendPrompt();
+            }
+        });
+
+        if (authToken) {
+            const expiry = localStorage.getItem('tokenExpiry');
+            if (expiry && new Date(expiry) > new Date()) {
+                document.getElementById('auth-section').classList.add('hidden');
+                document.getElementById('chat-container').classList.remove('hidden');
+                addSystemMessage('Connected to LM Studio');
+                tokenExpiry = new Date(expiry);
+            } else {
+                localStorage.removeItem('authToken');
+                localStorage.removeItem('tokenExpiry');
+            }
+        }
+
+        function toggleTheme() {
+            document.body.classList.toggle('light-theme');
+            const isLight = document.body.classList.contains('light-theme');
+            localStorage.setItem('theme', isLight ? 'light' : 'dark');
+            
+            const themeToggle = document.querySelector('.theme-toggle');
+            themeToggle.innerHTML = isLight ? 
+                '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>' :
+                '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>';
+        }
+
+        function loadTheme() {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'light') {
+                document.body.classList.add('light-theme');
+                document.querySelector('.theme-toggle').innerHTML = 
+                    '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>';
+            }
+        }
+
+        loadTheme();
+
+        async function authenticate() {
+            const password = document.getElementById('password').value;
+            if (!password.trim()) return;
+
+            try {
+                const response = await fetch('/auth', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    authToken = data.token;
+                    tokenExpiry = new Date(new Date().getTime() + (data.expires_in * 1000));
+                    
+                    localStorage.setItem('authToken', authToken);
+                    localStorage.setItem('tokenExpiry', tokenExpiry.toISOString());
+                    
+                    document.getElementById('auth-section').classList.add('hidden');
+                    document.getElementById('chat-container').classList.remove('hidden');
+                    addSystemMessage('Authentication successful! Token expires in 2 hours.');
+                    promptInput.focus();
+                } else {
+                    alert('Authentication failed');
+                }
+            } catch (error) {
+                alert('Connection error: ' + error.message);
+            }
+        }
+
+        async function sendPrompt() {
+            const prompt = promptInput.value.trim();
+            if (!prompt || isSending) return;
+
+            if (tokenExpiry && new Date() >= tokenExpiry) {
+                addSystemMessage('Session expired. Please login again.');
+                logout();
+                return;
+            }
+
+            isSending = true;
+            const sendButton = document.getElementById('send-button');
+            const originalContent = sendButton.innerHTML;
+            
+            try {
+                promptInput.disabled = true;
+                sendButton.disabled = true;
+                sendButton.innerHTML = '<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>';
+
+                addMessage(prompt, 'user');
+                promptInput.value = '';
+                promptInput.style.height = 'auto';
+
+                const typingIndicator = showTypingIndicator();
+
+                const response = await fetch('/prompt', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ prompt })
+                });
+
+                typingIndicator?.remove();
+
+                if (response.ok) {
+                    const data = await response.json();
+                    addMessage(data.response, 'assistant');
+                } else if (response.status === 401) {
+                    addSystemMessage('Session expired. Please login again.');
+                    logout();
+                } else {
+                    const errorText = await response.text();
+                    addMessage('Error: ' + errorText, 'system');
+                }
+            } catch (error) {
+                document.querySelectorAll('.typing-indicator').forEach(el => el.remove());
+                addMessage('Connection error: ' + error.message, 'system');
+            } finally {
+                isSending = false;
+                promptInput.disabled = false;
+                sendButton.disabled = false;
+                sendButton.innerHTML = originalContent;
+                promptInput.focus();
+            }
+        }
+
+        function formatMessageContent(text) {
+            // Simple formatting for common patterns
+            let formatted = text;
+            
+            // Format recipe titles
+            formatted = formatted.replace(/(?:^|\n)##?\s+(.*?Recipe.*?)(?:\n|$)/gi, '\n<div class="recipe-title">$1</div>\n');
+            
+            // Format sections
+            formatted = formatted.replace(/\*\*(Ingredients|Instructions|Steps|Notes):\*\*/gi, '<div class="recipe-section"><h3>$1</h3>');
+            
+            // Close recipe sections
+            formatted = formatted.replace(/\n\n(?=\w)/g, '</div>\n\n');
+            
+            // Convert markdown-style lists to HTML
+            formatted = formatted.replace(/^\s*\*\s+(.+)$/gm, '<li>$1</li>');
+            formatted = formatted.replace(/^\s*\d+\.\s+(.+)$/gm, '<li>$1</li>');
+            
+            // Wrap loose list items
+            formatted = formatted.replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
+            
+            // Convert line breaks
+            formatted = formatted.replace(/\n/g, '<br>');
+            
+            return formatted;
+        }
+
+        function addMessage(text, sender) {
+            const chat = document.getElementById('chat-messages');
+            const messageDiv = document.createElement('div');
+            
+            if (sender === 'user') {
+                messageDiv.className = 'message user-message';
+                messageDiv.textContent = text;
+            } else if (sender === 'assistant') {
+                messageDiv.className = 'message assistant-message';
+                messageDiv.innerHTML = formatMessageContent(text);
+            } else {
+                messageDiv.className = 'message system-message';
+                messageDiv.textContent = text;
+            }
+            
+            chat.appendChild(messageDiv);
+            scrollToBottom();
+        }
+
+        function addSystemMessage(text) {
+            addMessage(text, 'system');
+        }
+
+        function showTypingIndicator() {
+            const chat = document.getElementById('chat-messages');
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'typing-indicator';
+            typingDiv.innerHTML = `
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+                <div class="typing-dot"></div>
+            `;
+            chat.appendChild(typingDiv);
+            scrollToBottom();
+            return typingDiv;
+        }
+
+        function scrollToBottom() {
+            const chat = document.getElementById('chat-messages');
+            chat.scrollTo({
+                top: chat.scrollHeight,
+                behavior: 'smooth'
+            });
+        }
+
+        function clearChat() {
+            if (confirm('Clear all chat history?')) {
+                document.getElementById('chat-messages').innerHTML = '';
+                addSystemMessage('Chat cleared');
+            }
+        }
+
+        async function logout() {
+            if (authToken) {
+                try {
+                    await fetch('/logout', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${authToken}`
+                        }
+                    });
+                } catch (e) {
+                    console.log('Logout request failed:', e);
+                }
+            }
+            
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('tokenExpiry');
+            authToken = null;
+            tokenExpiry = null;
+            
+            document.getElementById('auth-section').classList.remove('hidden');
+            document.getElementById('chat-container').classList.add('hidden');
+            document.getElementById('password').value = '';
+            document.getElementById('chat-messages').innerHTML = '';
+        }
+
+        function checkConnection() {
+            fetch('/health')
+                .then(response => {
+                    if (response.ok) {
+                        document.title = 'LM Studio Chat - Connected';
+                    } else {
+                        throw new Error('Not OK');
+                    }
+                })
+                .catch(() => {
+                    document.title = 'LM Studio Chat - Disconnected';
+                    addSystemMessage('Connection lost. Please check if the server is running.');
+                });
+        }
+
+        setInterval(checkConnection, 30000);
+        
+        // Check token expiry periodically
+        setInterval(() => {
+            if (tokenExpiry && new Date() >= tokenExpiry) {
+                addSystemMessage('Session expired. Please login again.');
+                logout();
+            }
+        }, 60000);
+    </script>
+</body>
+</html>
